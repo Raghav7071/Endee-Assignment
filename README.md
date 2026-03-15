@@ -1,122 +1,83 @@
-# GovScheme AI
+# GovScheme AI Assistant | Endee Internship Project
 
-A semantic search app that lets you ask questions about Indian Government Schemes
-in plain English. Uses **Endee** as the vector database and retrieves answers
-using vector similarity instead of keyword matching.
-
-Built as part of the Endee.io campus assignment.
+A production-style conversational AI application built using the **Endee Vector Database**, Streamlit, and Groq LLMs. This project is submitted as part of the Endee Software Development / Machine Learning Internship evaluation.
 
 ---
 
-## What it Does
-
-1. Government scheme documents are converted into vector embeddings
-2. Embeddings are stored in Endee vector database
-3. When you ask a question, it finds the most similar documents
-4. Optionally uses an LLM (Groq) to generate a natural language answer
-
-```
-User Question → Embedding → Endee (cosine search) → Relevant Docs → LLM Answer
-```
+## Mandatory Usage Steps (For Evaluators & Contributors)
+To ensure uniformity and authenticity, please strictly follow these repository usage steps before working with the codebase:
+1. **Star** the official [Endee GitHub Repository](https://github.com/endee-io/endee) 
+2. **Fork** this repository to your personal GitHub account.
+3. Use the forked version as the base for building or testing this project.
 
 ---
 
-## How Endee is Used
+## 1. Project Overview & Problem Statement
+Understanding Indian Government Schemes (Yojanas) can be extremely complex for the average citizen. Documents detailing scheme guidelines (such as *Pradhan Mantri Anusuchit Jaati Abhyuday Yojna*, *Ayushman Bharat*, etc.) are often massive PDFs spanning hundreds of pages. 
 
-Endee is the core vector database. The project uses the official Python SDK (`pip install endee`):
+**Problem**: Keyword-based searches fail to understand the *intent* of a citizen's question. A citizen asking "How to get a business loan without collateral" will fail to find the *Mudra Yojana* if the exact word "collateral" isn't explicitly mapped.
 
-- **Index creation**: `client.create_index(name, dimension=384, space_type="cosine")`
-- **Document storage**: `index.upsert([{id, vector, meta}])` — stores embeddings with text metadata
-- **Similarity search**: `index.query(vector, top_k=3)` — finds closest matching documents
-
----
-
-## Tech Stack (Fully Dockerized)
-
-- **Endee** — vector database (runs in Docker)
-- **Python / Streamlit** — backend logic and frontend UI (runs in Docker)
-- **Sentence Transformers** — embedding model (all-MiniLM-L6-v2)
-- **Groq API** — LLM for answer generation (optional, free tier)
+**Solution**: The **GovScheme AI Assistant** is a Retrieval Augmented Generation (RAG) system. It ingests massive government PDFs, generates semantic vector embeddings, and uses the **Endee Vector Database** to perform ultra-fast cosine similarity searches. It then passes the highly relevant document chunks to an LLM to synthesize a continuous, beautiful, chat-based response for the user. 
 
 ---
 
-## Setup Instructions
+## 2. System Design & Technical Approach
 
-This project is fully containerized. You do **not** need Python installed locally — just Docker.
+The system uses a completely containerized architecture (Docker Compose) separating the vector database from the frontend application stream.
 
-### Prerequisites
-- Docker Desktop (running)
+### Architecture Flow:
+1. **Document Ingestion Layer (`ingest.py`, `chunker.py`)**: 
+   - Reads raw `.txt` files and massive `.pdf` documents in real-time.
+   - Extracts text using `PyPDF2` and intelligently chunks strings into 800-word segments (with 100-word overlaps) to preserve contextual meaning.
+2. **Embedding Layer (`embeddings.py`)**:
+   - Converts the text chunks into dense 384-dimensional vectors using `all-MiniLM-L6-v2`.
+3. **Storage & Retrieval (`query.py`)**:
+   - Vectors are stored and indexed continuously in **Endee**.
+4. **Generation (`llm.py`)**:
+   - Retrieved chunks (Top K=5) are injected into a rigorous System Prompt and sent to Groq's API (`llama-3.1-8b-instant`). The LLM synthesizes the final professional Markdown output.
+5. **Frontend UI (`streamlit_app.py`)**:
+   - A ChatGPT-style conversational loop leveraging Streamlit `session_state` and dynamic Sidebar PDF uploading.
+
+---
+
+## 3. Explanation of How Endee is Used
+
+**Endee** operates as the core vector search engine powering this application's RAG pipeline.
+
+### Integration Details:
+- **Python SDK**: The project connects via the official Endee python package natively over HTTP (`endee:8080`).
+- **Index Creation**: The system boots up and automatically defines an index named `govt_schemes` using the `cosine` space type natively optimized for semantic text comparison.
+- **Dynamic Upserting**: As users upload new PDFs via the Streamlit UI Sidebar, the Python backend intercepts the upload, creates chunk embeddings, and uses `index.upsert()` to ingest the vectors *on the fly* with metadata (text and source filename). 
+- **Similarity Search**: When a user queries the chatbot, `index.query(vector, top_k=5)` pulls the 5 most mathematically similar text chunks in milliseconds.
+
+---
+
+## 4. Clear Setup and Execution Instructions
+
+This project is completely Dockerized for foolproof deployment. You only need Docker Desktop installed.
+
+### Prerequisites:
+- Docker Desktop (Running)
 - Git
 
-### Step 1: Set Up Environment
+### Step-by-Step Execution:
 
+**1. Clone & Setup Environment**
 ```bash
 cp .env.example .env
 ```
+*(Optional but Highly Recommended)*: Add a free Groq API key into the `.env` file to enable the AI Synthesizer fallback. Otherwise, the app defaults to raw extracted text.
 
-If you want AI-generated LLM answers (optional), get a free API key from
-https://console.groq.com and add it to `.env`:
-
-```
-GROQ_API_KEY=your_key_here
-```
-
-### Step 2: Run the App
-
-Simply run:
+**2. Run the Multi-Container Cluster**
 ```bash
 docker-compose up --build -d
 ```
-*(Or use `./setup.sh`)*
+*This command starts Endee in the background, rebuilds the Streamlit container, downloads the embedding model, and auto-ingests the `data/docs` folder.*
 
-What happens under the hood:
-1. Docker starts the **Endee server** on port 8080.
-2. Docker builds and starts the **app container** which:
-   - Waits 5 seconds for Endee to be ready.
-   - Runs `backend/ingest.py` to embed and load all documents into Endee.
-   - Starts the Streamlit frontend.
+**3. Access the Chat Application**
+Open your browser to: **[http://localhost:8501](http://localhost:8501)**
 
-### Step 3: View the App
-
-Open [http://localhost:8501](http://localhost:8501) in your browser.
-
-*Note: It may take 10-15 seconds the first time for the embedding model to download and process the documents.*
-
----
-
-## Sample Queries
-
-| Question | Matches |
-|---|---|
-| What is PM Kisan? | pm_kisan_yojana.txt |
-| How to get health insurance from government? | ayushman_bharat.txt |
-| Business loan without collateral | mudra_yojana.txt |
-| Free LPG connection | ujjwala_yojana.txt |
-| Government support for startups | startup_india.txt |
-| UPI and digital payments | digital_india.txt |
-| Free skill training | skill_india.txt |
-
----
-
-## Design Choices
-
-- **Dockerized Architecture**: Everything runs in Docker so there are no pip or python version issues on different machines.
-- **all-MiniLM-L6-v2**: lightweight (~80MB), 384-dim embeddings — good enough for this scale.
-- **Cosine similarity**: works better than euclidean for text since it compares direction not magnitude.
-- **Groq as optional**: app works without it (returns raw text), but with it you get proper AI answers.
-- **Streamlit**: simple to build, looks clean, no need for a separate frontend framework.
-
----
-
-## Limitations
-
-- Ingests full documents without chunking — would need splitting for larger docs.
-- No deduplication — re-running ingest creates duplicate entries (though Endee handles exact ID overwrites safely).
-
----
-
-## Author
-
-**Raghav Yadav**
-B.Tech 2026
-Endee.io Campus Assignment
+**4. Testing the RAG Pipeline**
+- Type: *"Explain the Pradhan Mantri Anusuchit Jaati Abhyuday Yojna in detail"* in the chat input.
+- Watch as Endee retrieves the relevant chunks and the LLM renders a perfect Markdown response.
+- Use the **Sidebar Manager** to upload a brand new Government PDF and ask a question about it immediately!
