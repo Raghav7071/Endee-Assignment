@@ -1,11 +1,15 @@
-"""
-streamlit_app.py — Premium UI for searching government scheme info.
-run with: streamlit run streamlit_app.py
-"""
+import streamlit as st
+
+# MUST BE THE FIRST STREAMLIT COMMAND
+st.set_page_config(
+    page_title="GovScheme AI | Premium",
+    page_icon="🏛️",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
 import sys
 import os
-import streamlit as st
 import tempfile
 
 # add backend to path so we can import our modules
@@ -18,14 +22,6 @@ from chunker import chunk_text
 from embeddings import generate_embedding
 from endee import Endee
 from config import ENDEE_URL, INDEX_NAME
-
-# configure page layout and title
-st.set_page_config(
-    page_title="GovScheme AI | Premium",
-    page_icon="🏛️",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
 
 # inject advanced CSS for a "Wow" factor
 st.markdown("""
