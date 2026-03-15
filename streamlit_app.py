@@ -2,9 +2,9 @@ import streamlit as st
 
 # MUST BE THE FIRST STREAMLIT COMMAND
 st.set_page_config(
-    page_title="GovScheme AI | RAG Chatbot",
-    page_icon="🏛️",
-    layout="wide",
+    page_title="GovScheme AI",
+    page_icon="📄",
+    layout="centered",
     initial_sidebar_state="expanded",
 )
 
@@ -32,183 +32,162 @@ from modules.rag_pipeline import run_rag
 # ─── Initialize session ────────────────────────────────────────────────────
 init_session()
 
-# ─── CSS (premium design) ──────────────────────────────────────────────────
+# ─── CSS (minimalist design) ──────────────────────────────────────────────
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Main App Background - Sleek Dark */
-    .stApp {
-        background: #0f1117;
-        background-image: 
-            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-            radial-gradient(at 50% 0%, hsla(225,39%,30%,0.1) 0, transparent 50%), 
-            radial-gradient(at 100% 0%, hsla(339,49%,30%,0.1) 0, transparent 50%);
-        font-family: 'Outfit', sans-serif;
-        color: #e2e8f0;
+    /* Base */
+    html, body, .stApp {
+        background-color: #ffffff !important;
+        font-family: 'Inter', sans-serif;
+        color: #1a1a1a;
     }
 
-    /* Sidebar - Glassmorphism */
+    /* Sidebar */
     [data-testid="stSidebar"] {
-        background: rgba(15, 23, 42, 0.6) !important;
-        backdrop-filter: blur(12px);
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        background-color: #f7f7f7 !important;
+        border-right: 1px solid #e8e8e8;
     }
-    [data-testid="stSidebar"] * { color: #cbd5e1 !important; }
+    [data-testid="stSidebar"] * { color: #333333 !important; }
     [data-testid="stSidebar"] .stButton > button {
-        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
-        color: white !important;
-        border-radius: 8px !important;
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
         border: none !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+        font-size: 0.9rem !important;
+        transition: background 0.2s;
     }
     [data-testid="stSidebar"] .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        background-color: #333333 !important;
     }
 
     /* Header */
     .app-header {
         text-align: center;
-        padding: 2rem 0 1.5rem 0;
-        animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes fadeUp {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
+        padding: 2.5rem 0 1rem 0;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 1.5rem;
     }
     .app-title {
-        font-size: 2.8rem;
-        font-weight: 800;
-        background: linear-gradient(to right, #818cf8, #c084fc, #f472b6);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        line-height: 1.2;
-        margin-bottom: 0.5rem;
-        letter-spacing: -0.02em;
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        letter-spacing: -0.03em;
+        margin-bottom: 0.35rem;
     }
     .app-subtitle {
-        font-size: 1.15rem;
-        color: #94a3b8;
-        font-weight: 300;
-        letter-spacing: 0.01em;
+        font-size: 0.95rem;
+        color: #888888;
+        font-weight: 400;
     }
 
-    /* Chat messages - Dark cards */
+    /* Answer & Source cards */
     .answer-card {
-        background: rgba(30, 41, 59, 0.5);
-        backdrop-filter: blur(10px);
-        border-radius: 16px;
-        padding: 1.5rem 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-        margin: 0.5rem 0;
-        position: relative;
-        overflow: hidden;
-        color: #f1f5f9;
-    }
-    .answer-card::before {
-        content: '';
-        position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        background: linear-gradient(90deg, #6366f1, #c084fc, #ec4899);
+        background: #fafafa;
+        border-radius: 8px;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid #ebebeb;
+        margin: 0.4rem 0;
+        color: #1a1a1a;
     }
     .source-card {
-        background: rgba(15, 23, 42, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
-        margin-bottom: 0.75rem;
-        border-left: 3px solid #8b5cf6;
-        font-size: 0.9rem;
-        color: #cbd5e1;
+        background: #ffffff;
+        border: 1px solid #ebebeb;
+        border-left: 3px solid #1a1a1a;
+        border-radius: 6px;
+        padding: 0.9rem 1.1rem;
+        margin-bottom: 0.6rem;
+        font-size: 0.88rem;
+        color: #444444;
     }
     .source-meta {
-        font-size: 0.75rem;
-        color: #64748b;
-        margin-bottom: 0.5rem;
+        font-size: 0.72rem;
+        color: #999999;
+        margin-bottom: 0.4rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
     .badge-ai {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 4px 14px; border-radius: 6px;
-        background: rgba(99, 102, 241, 0.15); 
-        color: #818cf8;
-        font-size: 0.75rem; font-weight: 600;
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        margin-bottom: 1rem;
-        letter-spacing: 0.02em;
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 4px;
+        background: #f0f0f0;
+        color: #555555;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
+        margin-bottom: 0.75rem;
     }
     .badge-retrieval {
-        display: inline-flex; align-items: center; gap: 6px;
-        padding: 4px 14px; border-radius: 6px;
-        background: rgba(148, 163, 184, 0.1); 
-        color: #94a3b8;
-        font-size: 0.75rem; font-weight: 600;
-        border: 1px solid rgba(148, 163, 184, 0.2); 
-        margin-bottom: 1rem;
-        letter-spacing: 0.02em;
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 4px;
+        background: #f0f0f0;
+        color: #888888;
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
+        margin-bottom: 0.75rem;
     }
 
-    /* Quick suggestion buttons - Outline style */
+    /* Suggestion buttons */
     div[data-testid="stButton"] button {
-        background: rgba(30, 41, 59, 0.3) !important;
-        color: #cbd5e1 !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 10px !important;
-        font-weight: 500 !important;
-        font-size: 0.9rem !important;
-        transition: all 0.2s ease !important;
+        background: #ffffff !important;
+        color: #333333 !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 6px !important;
+        font-weight: 400 !important;
+        font-size: 0.88rem !important;
+        transition: border-color 0.15s, color 0.15s !important;
         width: 100% !important;
-        padding: 0.75rem !important;
+        padding: 0.65rem !important;
     }
     div[data-testid="stButton"] button:hover {
-        background: rgba(99, 102, 241, 0.1) !important;
-        border-color: rgba(99, 102, 241, 0.5) !important;
-        color: #e0e7ff !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+        border-color: #1a1a1a !important;
+        color: #1a1a1a !important;
     }
 
-    /* Chat input - Neon glowing focus */
+    /* Chat input */
     .stChatInput > div > div > textarea {
-        border-radius: 12px !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        background: rgba(15, 23, 42, 0.6) !important;
-        color: #f8fafc !important;
-        font-size: 1rem !important;
-        padding: 1rem 1.25rem !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        border-radius: 6px !important;
+        border: 1px solid #e0e0e0 !important;
+        background: #ffffff !important;
+        color: #1a1a1a !important;
+        font-size: 0.95rem !important;
+        padding: 0.85rem 1rem !important;
     }
     .stChatInput > div > div > textarea:focus {
-        border-color: #8b5cf6 !important;
-        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3), 0 0 15px rgba(139, 92, 246, 0.1) !important;
+        border-color: #1a1a1a !important;
+        box-shadow: none !important;
     }
-    
-    /* Markdown Text Colors */
+
+    /* Typography */
     .stMarkdown p, .stMarkdown li {
-        color: #cbd5e1 !important;
-        line-height: 1.6 !important;
+        color: #333333 !important;
+        line-height: 1.7 !important;
+        font-size: 0.95rem !important;
     }
     .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-        color: #f8fafc !important;
+        color: #1a1a1a !important;
+        font-weight: 600 !important;
     }
-    
-    /* Expander override */
+
+    /* Expander */
     .streamlit-expanderHeader {
-        background: rgba(30, 41, 59, 0.3) !important;
-        color: #94a3b8 !important;
-        border-radius: 8px !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        background: #fafafa !important;
+        color: #666666 !important;
+        border-radius: 6px !important;
+        border: 1px solid #ebebeb !important;
+        font-size: 0.88rem !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -307,10 +286,8 @@ with st.sidebar:
 
 st.markdown("""
 <div class="app-header">
-    <div class="app-title">🏛️ GovScheme AI Chatbot</div>
-    <div class="app-subtitle">
-        Upload any document → Ask questions → Get AI-powered answers with source citations
-    </div>
+    <div class="app-title">GovScheme AI</div>
+    <div class="app-subtitle">Ask questions. Get AI-powered answers with source citations.</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -357,9 +334,9 @@ active_query = None
 
 if not get_history():
     st.markdown("""
-    <p style='text-align:center; color:#94a3b8; font-size:0.8rem;
-              font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
-              margin: 1.5rem 0 0.75rem 0;'>✦ Suggested Questions</p>
+    <p style='text-align:center; color:#aaaaaa; font-size:0.75rem;
+              font-weight:500; text-transform:uppercase; letter-spacing:0.08em;
+              margin: 2rem 0 0.75rem 0;'>Suggested Questions</p>
     """, unsafe_allow_html=True)
     cols = st.columns(4)
     examples = [
@@ -406,7 +383,7 @@ if active_query:
 
 # ─── Footer ──────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align:center; padding: 3rem 0 1rem 0; color:#94a3b8; font-size:0.82rem;">
-    🏛️ GovScheme AI · Built with Streamlit + Endee Vector DB + Groq LLM
+<div style="text-align:center; padding: 3rem 0 1rem 0; color:#cccccc; font-size:0.78rem; border-top: 1px solid #f0f0f0; margin-top: 2rem;">
+    GovScheme AI &nbsp;·&nbsp; Streamlit &nbsp;+&nbsp; Endee &nbsp;+&nbsp; Groq
 </div>
 """, unsafe_allow_html=True)
