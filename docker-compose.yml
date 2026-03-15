@@ -1,0 +1,35 @@
+services:
+  endee:
+    image: endeeio/endee-server:latest
+    container_name: endee-server
+    ports:
+      - "8080:8080"
+    ulimits:
+      nofile: 100000
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200m"
+        max-file: "5"
+    environment:
+      NDD_NUM_THREADS: 0
+      NDD_AUTH_TOKEN: ""
+    volumes:
+      - endee-data:/data
+    restart: unless-stopped
+
+  app:
+    build: .
+    container_name: govscheme-app
+    ports:
+      - "8501:8501"
+    environment:
+      # override the local .env value so the container talks to Endee service
+      - ENDEE_URL=http://endee:8080
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    depends_on:
+      - endee
+    restart: unless-stopped
+
+volumes:
+  endee-data:
