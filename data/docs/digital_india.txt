@@ -1,0 +1,9 @@
+Digital India is a flagship programme launched on 1 July 2015 to transform India into a digitally empowered society and knowledge economy.
+The programme focuses on three key areas: digital infrastructure, digital governance, and digital empowerment of citizens.
+Under Digital India, the BharatNet project aims to connect all 2.5 lakh gram panchayats with high-speed optical fibre broadband.
+DigiLocker is a platform under Digital India that allows citizens to securely store and share official documents digitally.
+The Unified Payments Interface (UPI) developed under Digital India has revolutionized digital payments in India with over 10 billion monthly transactions.
+The UMANG app provides access to over 1,200 government services through a single mobile application.
+Digital India has enabled the creation of a digital identity for every citizen through Aadhaar, which covers over 130 crore Indians.
+The National Digital Health Mission under Digital India creates a unique health ID for every citizen and enables digital health records.
+Common Service Centres (CSCs) under Digital India provide digital services to citizens in rural and remote areas.
