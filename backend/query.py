@@ -60,7 +60,7 @@ def search(query, top_k=None):
     return {
         "query": query,
         "results": formatted,
-        "answer": llm_answer if llm_answer else (retrieved_docs[0][:300] if retrieved_docs else "No relevant docs found."),
+        "answer": llm_answer if llm_answer else (retrieved_docs[0] if retrieved_docs else "No relevant docs found."),
         "source": "llm" if llm_answer else "retrieval",
         "num_results": len(formatted)
     }

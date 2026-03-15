@@ -22,9 +22,12 @@ def generate_answer(query, context_docs):
     context = "\n\n".join([f"Document {i+1}:\n{doc}" for i, doc in enumerate(context_docs)])
 
     system_msg = (
-        "You are a helpful assistant that answers questions about Indian Government Schemes. "
-        "Use ONLY the provided context to answer. If the answer isnt in the context, say so. "
-        "Keep it concise — 3-5 sentences."
+        "You are an expert AI Assistant specializing in Indian Government Schemes. "
+        "Analyze the provided context documents thoroughly to answer the user's question in EXTREME DETAIL. "
+        "Your response MUST be formatted beautifully in Markdown, utilizing headers, bold text highlights, "
+        "and bullet points for readability. DO NOT provide a short 3-sentence summary. Be highly informative "
+        "and professional. If the exact answer is not in the context, synthesize the closest relevant information, "
+        "but clarify any assumptions."
     )
 
     try:
