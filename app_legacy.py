@@ -6,9 +6,9 @@ Inspired by Endee.io's modern, minimalist SaaS design
 import streamlit as st
 from datetime import datetime
 
-# ============================================================================
+
 # PAGE CONFIGURATION
-# ============================================================================
+
 
 st.set_page_config(
     page_title="AI Agent Interface",
@@ -17,9 +17,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ============================================================================
+
 # CUSTOM CSS INJECTION
-# ============================================================================
+
 
 custom_css = """
 <style>
@@ -170,9 +170,9 @@ custom_css = """
 
 st.markdown(custom_css, unsafe_allow_html=True)
 
-# ============================================================================
+
 # INITIALIZE SESSION STATE
-# ============================================================================
+
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -185,9 +185,9 @@ if "messages" not in st.session_state:
 if "initialized" not in st.session_state:
     st.session_state.initialized = False
 
-# ============================================================================
+
 # SECTION 1: HERO SECTION
-# ============================================================================
+
 
 def render_hero_section():
     """Render the premium hero section with title and CTA"""
@@ -219,9 +219,9 @@ def render_hero_section():
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
 
 
-# ============================================================================
+
 # SECTION 2: PERFORMANCE METRICS
-# ============================================================================
+
 
 def render_performance_metrics():
     """Display performance metrics in a 4-column grid"""
@@ -250,9 +250,9 @@ def render_performance_metrics():
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
 
 
-# ============================================================================
+
 # SECTION 3: AI AGENT CHAT INTERFACE
-# ============================================================================
+
 
 def render_chat_interface():
     """Render the multi-turn chat interface"""
@@ -305,9 +305,9 @@ def render_chat_interface():
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
 
 
-# ============================================================================
+
 # SECTION 4: FEATURE CARDS / CAPABILITIES GRID
-# ============================================================================
+
 
 def render_feature_cards():
     """Display capability cards in a 3-column grid"""
@@ -347,9 +347,9 @@ def render_feature_cards():
             )
 
 
-# ============================================================================
+
 # MOCK AGENT RESPONSE GENERATOR
-# ============================================================================
+
 
 def generate_agent_response(user_input: str) -> str:
     """
@@ -370,9 +370,9 @@ def generate_agent_response(user_input: str) -> str:
     return f"{base_response}\n\n📊 **Confidence Score:** 92%\n⏱️ **Query Time:** 2.3ms"
 
 
-# ============================================================================
+
 # MAIN APPLICATION FLOW
-# ============================================================================
+
 
 def main():
     """Main application entry point"""

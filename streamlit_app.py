@@ -2,422 +2,411 @@ import streamlit as st
 
 # MUST BE THE FIRST STREAMLIT COMMAND
 st.set_page_config(
-    page_title="GovScheme AI | Premium",
+    page_title="GovScheme AI | RAG Chatbot",
     page_icon="🏛️",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 import sys
 import os
 import tempfile
 
-# add backend to path so we can import our modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
+# Add project root to path
+_ROOT = os.path.dirname(__file__)
+sys.path.insert(0, os.path.join(_ROOT, "backend"))
+sys.path.insert(0, _ROOT)
 
-from query import search
-import PyPDF2
-from ingest import extract_text
-from chunker import chunk_text
-from embeddings import generate_embedding
-from endee import Endee
-from config import ENDEE_URL, INDEX_NAME
+# RAG modules
+from modules.chatbot import (
+    init_session, add_user_message, add_assistant_message,
+    get_history, clear_history, mark_document_uploaded,
+    is_document_uploaded, get_uploaded_docs,
+)
+from modules.document_loader import load_document
+from modules.text_chunker import chunk_pages
+from modules.embedding_generator import embed_chunks, mark_as_cached
+from modules.vector_store import upsert_chunks
+from modules.rag_pipeline import run_rag
 
-# inject advanced CSS for a "Wow" factor
+# ─── Initialize session ────────────────────────────────────────────────────
+init_session()
+
+# ─── CSS (premium design) ──────────────────────────────────────────────────
 st.markdown("""
 <style>
-    /* Import premium font */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-    /* hide default streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Global styling */
+    /* Main App Background - Sleek Dark */
     .stApp {
-        background: linear-gradient(135deg, #f0f4f8 0%, #ffffff 100%);
-        color: #0f172a;
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        background: #0f1117;
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+            radial-gradient(at 50% 0%, hsla(225,39%,30%,0.1) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, hsla(339,49%,30%,0.1) 0, transparent 50%);
+        font-family: 'Outfit', sans-serif;
+        color: #e2e8f0;
     }
 
-    /* Animations */
+    /* Sidebar - Glassmorphism */
+    [data-testid="stSidebar"] {
+        background: rgba(15, 23, 42, 0.6) !important;
+        backdrop-filter: blur(12px);
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    [data-testid="stSidebar"] * { color: #cbd5e1 !important; }
+    [data-testid="stSidebar"] .stButton > button {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%) !important;
+        color: white !important;
+        border-radius: 8px !important;
+        border: none !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+
+    /* Header */
+    .app-header {
+        text-align: center;
+        padding: 2rem 0 1.5rem 0;
+        animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
     @keyframes fadeUp {
         0% { opacity: 0; transform: translateY(20px); }
         100% { opacity: 1; transform: translateY(0); }
     }
-    @keyframes pulseGlow {
-        0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
-    }
-
-    /* Header styling */
-    .header-container {
-        padding: 3rem 0 2rem 0;
-        text-align: center;
-        animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .header-badge {
-        display: inline-block;
-        padding: 6px 16px;
-        background: rgba(79, 70, 229, 0.1);
-        color: #4f46e5;
-        border-radius: 9999px;
-        font-size: 0.85rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        margin-bottom: 1rem;
-    }
-    .header-title {
-        font-size: 3.5rem;
+    .app-title {
+        font-size: 2.8rem;
         font-weight: 800;
-        line-height: 1.1;
-        letter-spacing: -0.02em;
-        background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+        background: linear-gradient(to right, #818cf8, #c084fc, #f472b6);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 1rem;
+        line-height: 1.2;
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
     }
-    .header-subtitle {
-        font-size: 1.2rem;
-        color: #64748b;
-        font-weight: 400;
-        max-width: 600px;
-        margin: 0 auto;
-        line-height: 1.6;
-    }
-
-    /* Search & Chat Input Box Styling */
-    .stTextInput>div>div>input, .stChatInput>div>div>textarea {
-        border-radius: 16px !important;
-        padding: 1.2rem 1.5rem !important;
-        font-size: 1.15rem !important;
-        font-weight: 500 !important;
-        border: 2px solid #e2e8f0 !important;
-        background: white !important;
-        color: #0f172a !important; /* FIXED TYPING VISIBILITY BUG */
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    .stTextInput>div>div>input:focus, .stChatInput>div>div>textarea:focus {
-        border-color: #4f46e5 !important;
-        box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.2), 0 0 0 4px rgba(79, 70, 229, 0.1) !important;
-        transform: translateY(-2px);
+    .app-subtitle {
+        font-size: 1.15rem;
+        color: #94a3b8;
+        font-weight: 300;
+        letter-spacing: 0.01em;
     }
 
-    /* Example Buttons styling */
-    div[data-testid="stButton"] button {
-        background: white;
-        color: #475569;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        width: 100%;
-        height: 100%;
-    }
-    div[data-testid="stButton"] button:hover {
-        background: #f8fafc;
-        border-color: #cbd5e1;
-        color: #0f172a;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    }
-    
-    /* Answer Card (Glassmorphism & Gradients) */
+    /* Chat messages - Dark cards */
     .answer-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(12px);
-        border-radius: 20px;
-        padding: 2rem;
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0,0,0,0.02);
-        margin-top: 2rem;
-        margin-bottom: 2rem;
+        background: rgba(30, 41, 59, 0.5);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 1.5rem 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        margin: 0.5rem 0;
         position: relative;
         overflow: hidden;
-        animation: fadeUp 0.5s ease-out forwards;
+        color: #f1f5f9;
     }
-    
-    /* decorative top bar for answer card */
     .answer-card::before {
         content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 5px;
-        background: linear-gradient(90deg, #4f46e5, #0ea5e9, #10b981);
+        position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        background: linear-gradient(90deg, #6366f1, #c084fc, #ec4899);
     }
-    
-    .answer-heading {
-        font-weight: 800;
-        color: #0f172a;
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+    .source-card {
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 0.75rem;
+        border-left: 3px solid #8b5cf6;
+        font-size: 0.9rem;
+        color: #cbd5e1;
     }
-    
-    .answer-content {
-        color: #334155;
-        font-size: 1.15rem;
-        line-height: 1.7;
-        font-weight: 400;
-    }
-    
-    /* Document Cards */
-    .doc-card {
-        background-color: #ffffff;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        border: 1px solid #f1f5f9;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-        position: relative;
-        overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    .doc-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.08);
-        border-color: #e2e8f0;
-    }
-    .doc-card::left-accent {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background-color: #94a3b8;
-        border-radius: 4px 0 0 4px;
-    }
-    
-    .doc-title {
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 0.25rem;
-        font-size: 1.1rem;
-    }
-    
-    .doc-score {
-        display: inline-block;
+    .source-meta {
         font-size: 0.75rem;
-        color: #ffffff;
-        background-color: #64748b;
-        padding: 2px 8px;
-        border-radius: 4px;
+        color: #64748b;
+        margin-bottom: 0.5rem;
         font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .badge-ai {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 14px; border-radius: 6px;
+        background: rgba(99, 102, 241, 0.15); 
+        color: #818cf8;
+        font-size: 0.75rem; font-weight: 600;
+        border: 1px solid rgba(99, 102, 241, 0.3);
         margin-bottom: 1rem;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
     }
-    
-    .doc-preview {
-        font-size: 0.95rem;
-        color: #475569;
-        line-height: 1.6;
+    .badge-retrieval {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 14px; border-radius: 6px;
+        background: rgba(148, 163, 184, 0.1); 
+        color: #94a3b8;
+        font-size: 0.75rem; font-weight: 600;
+        border: 1px solid rgba(148, 163, 184, 0.2); 
+        margin-bottom: 1rem;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
     }
-    
-    /* Source badges */
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        font-weight: 700;
-        background-color: #f1f5f9;
-        color: #475569;
-        margin-top: 1.5rem;
-        border: 1px solid #e2e8f0;
+
+    /* Quick suggestion buttons - Outline style */
+    div[data-testid="stButton"] button {
+        background: rgba(30, 41, 59, 0.3) !important;
+        color: #cbd5e1 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 10px !important;
+        font-weight: 500 !important;
+        font-size: 0.9rem !important;
+        transition: all 0.2s ease !important;
+        width: 100% !important;
+        padding: 0.75rem !important;
     }
-    .badge.ai {
-        background-color: #eef2ff;
-        color: #4f46e5;
-        border-color: #e0e7ff;
+    div[data-testid="stButton"] button:hover {
+        background: rgba(99, 102, 241, 0.1) !important;
+        border-color: rgba(99, 102, 241, 0.5) !important;
+        color: #e0e7ff !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
     }
-    
-    /* Adjust expander styling */
-    .streamlit-expanderHeader {
-        font-weight: 600 !important;
-        font-family: 'Plus Jakarta Sans', sans-serif !important;
-        color: #334155 !important;
-        background-color: #f8fafc !important;
+
+    /* Chat input - Neon glowing focus */
+    .stChatInput > div > div > textarea {
         border-radius: 12px !important;
-        border: 1px solid #e2e8f0 !important;
-        margin-bottom: 1rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        background: rgba(15, 23, 42, 0.6) !important;
+        color: #f8fafc !important;
+        font-size: 1rem !important;
+        padding: 1rem 1.25rem !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+    .stChatInput > div > div > textarea:focus {
+        border-color: #8b5cf6 !important;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3), 0 0 15px rgba(139, 92, 246, 0.1) !important;
+    }
+    
+    /* Markdown Text Colors */
+    .stMarkdown p, .stMarkdown li {
+        color: #cbd5e1 !important;
+        line-height: 1.6 !important;
+    }
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: #f8fafc !important;
+    }
+    
+    /* Expander override */
+    .streamlit-expanderHeader {
+        background: rgba(30, 41, 59, 0.3) !important;
+        color: #94a3b8 !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------- SESSION STATE -----------------
-# We use chat_history for rendering the beautiful ChatGPT style layout
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
 
-# ----------------- UI STRUCTURE -----------------
-
-# Sidebar for Dynamic Uploads
+# ═══════════════════════════════════════════════════════════════════
+#  SIDEBAR — Document Upload & Knowledge Base Manager
+# ═══════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("### 📄 Knowledge Base Manager")
-    st.info("Upload new documents to make them instantly searchable.")
-    
-    uploaded_file = st.file_uploader("Upload Scheme Document", type=["pdf", "txt"])
-    
-    if uploaded_file is not None:
-        filename = uploaded_file.name
-        
-        # Save temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as tmp:
-            tmp.write(uploaded_file.getvalue())
-            tmp_path = tmp.name
-            
-        if st.button("Process & Add to Knowledge Base", use_container_width=True):
-            with st.spinner("Processing document..."):
-                try:
-                    # extract
-                    content = extract_text(tmp_path)
-                    
-                    if content:
-                        # chunk
-                        chunks = chunk_text(content, chunk_size=800, overlap=100)
-                        
-                        # connect and insert
-                        client = Endee()
-                        client.set_base_url(f"{ENDEE_URL}/api/v1")
-                        index = client.get_index(name=INDEX_NAME)
-                        
-                        for chunk_i, chunk in enumerate(chunks):
-                            vector = generate_embedding(chunk)
-                            doc_id = filename.replace(".pdf", "").replace(".txt", "")
-                            chunk_id = f"{doc_id}_user_chunk{chunk_i}"
-                            
-                            index.upsert([{
-                                "id": chunk_id,
-                                "vector": vector,
-                                "meta": {
-                                    "text": chunk,
-                                    "source": filename
-                                }
-                            }])
-                            
-                        st.success(f"Added {filename} ({len(chunks)} chunks)!")
-                    else:
-                        st.warning("Could not extract text from document.")
-                        
-                except Exception as e:
-                    st.error(f"Error processing document: {e}")
-                finally:
-                    os.unlink(tmp_path)
+    st.markdown("## 📚 Knowledge Base")
+    st.markdown("Upload documents to make them searchable.")
 
-# Header area
+    uploaded_files = st.file_uploader(
+        "Supported: PDF, TXT, MD, CSV, JSON",
+        type=["pdf", "txt", "md", "csv", "json"],
+        accept_multiple_files=True,
+        label_visibility="collapsed",
+    )
+
+    if uploaded_files:
+        new_files = [f for f in uploaded_files if not is_document_uploaded(f.name)]
+
+        if new_files:
+            if st.button("⚡ Process & Ingest Documents", use_container_width=True):
+                for uploaded_file in new_files:
+                    with st.spinner(f"Processing **{uploaded_file.name}**..."):
+                        ext = os.path.splitext(uploaded_file.name)[1].lower()
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+                            tmp.write(uploaded_file.getvalue())
+                            tmp_path = tmp.name
+
+                        try:
+                            # Step 1: Load
+                            pages = load_document(tmp_path, original_filename=uploaded_file.name)
+                            if not pages:
+                                st.warning(f"⚠️ Could not extract text from **{uploaded_file.name}**.")
+                                continue
+
+                            # Step 2: Chunk
+                            chunks = chunk_pages(pages, chunk_size=700, chunk_overlap=100)
+                            st.markdown(f"📄 **{uploaded_file.name}** → {len(chunks)} chunks")
+
+                            # Step 3: Embed (with caching)
+                            progress_bar = st.progress(0, text="Generating embeddings...")
+                            embedded = []
+
+                            def _progress(current, total):
+                                pct = int(current / total * 100)
+                                progress_bar.progress(pct, text=f"Embedding chunk {current}/{total}...")
+
+                            embedded = embed_chunks(chunks, progress_callback=_progress)
+                            progress_bar.empty()
+
+                            # Step 4: Upsert into Endee
+                            n_upserted = upsert_chunks(embedded)
+                            cached_count = sum(1 for c in embedded if c.get("cached"))
+
+                            # Step 5: Mark hashes as cached
+                            mark_as_cached([c["hash"] for c in embedded if not c.get("cached")])
+                            mark_document_uploaded(uploaded_file.name)
+
+                            st.success(
+                                f"✅ **{uploaded_file.name}** ingested!\n\n"
+                                f"• {n_upserted} new chunks → Endee\n"
+                                f"• {cached_count} chunks skipped (cached)"
+                            )
+
+                        except Exception as e:
+                            st.error(f"❌ Error processing **{uploaded_file.name}**: {e}")
+                        finally:
+                            try:
+                                os.unlink(tmp_path)
+                            except Exception:
+                                pass
+
+        else:
+            st.info("✓ All uploaded files are already in the knowledge base.")
+
+    # Uploaded docs list
+    docs = get_uploaded_docs()
+    if docs:
+        st.markdown("---")
+        st.markdown("**📂 Indexed Documents (this session)**")
+        for doc in docs:
+            st.markdown(f"• `{doc}`")
+
+    st.markdown("---")
+    if st.button("🗑️ Clear Chat History", use_container_width=True):
+        clear_history()
+        st.rerun()
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  MAIN AREA — Chat Interface
+# ═══════════════════════════════════════════════════════════════════
+
 st.markdown("""
-<div class="header-container">
-    <div class="header-badge">Semantic Search + RAG Vector DB</div>
-    <h1 class="header-title">GovScheme AI Assistant</h1>
-    <p class="header-subtitle">Instantly discover and understand Indian Government Schemes using Endee vector database and conversational AI.</p>
+<div class="app-header">
+    <div class="app-title">🏛️ GovScheme AI Chatbot</div>
+    <div class="app-subtitle">
+        Upload any document → Ask questions → Get AI-powered answers with source citations
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
-# ----------------- RENDER CHAT HISTORY -----------------
-for msg in st.session_state.chat_history:
+# ─── Chat History ────────────────────────────────────────────────
+for msg in get_history():
     if msg["role"] == "user":
         with st.chat_message("user", avatar="👤"):
             st.markdown(msg["content"])
     else:
         with st.chat_message("assistant", avatar="🏛️"):
-            # Display Answer
-            is_ai = msg["source"] == "llm"
-            badge_class = "badge ai" if is_ai else "badge"
-            badge_icon = "✨" if is_ai else "📄"
-            badge_text = "AI Synthesized Response" if is_ai else "Direct Document Extraction"
-            
+            _is_ai = msg.get("source_type") == "llm"
+            _badge = "badge-ai" if _is_ai else "badge-retrieval"
+            _icon = "✨" if _is_ai else "📄"
+            _label = "AI Synthesized Answer" if _is_ai else "Direct Document Extraction"
+
             st.markdown(f"""
-            <div class="answer-card" style="margin-top: 0;">
-                <div class="{badge_class}" style="margin-top: 0; margin-bottom: 1rem;">
-                    {badge_icon} {badge_text}
-                </div>
-                <div class="answer-content">
-                    {msg["content"]}
-                </div>
+            <div class="answer-card">
+                <div class="{_badge}">{_icon} {_label}</div>
             </div>
             """, unsafe_allow_html=True)
-            
-            # Display Sources Expander
-            with st.expander(f"📚 View Retrieved Source Documents ({msg['num_results']})", expanded=False):
-                st.markdown("<br>", unsafe_allow_html=True)
-                for r in msg.get("results", []):
-                    score_pct = round(r.get('score', 0) * 100, 1)
-                    st.markdown(f"""
-                    <div class="doc-card">
-                        <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background-color: #94a3b8; border-radius: 4px 0 0 4px;"></div>
-                        <div class="doc-title">{r.get('source', 'Unknown Document').replace('.txt', '').replace('.pdf', '')}</div>
-                        <div class="doc-score">Match: {score_pct}%</div>
-                        <div class="doc-preview">"{r.get('preview', '')}"</div>
-                    </div>
-                    """, unsafe_allow_html=True)
 
-# ----------------- QUICK ACTION BUTTONS (Only if history is empty) -----------------
+            st.markdown(msg["content"])
+
+            # Source citations
+            sources = msg.get("sources", [])
+            if sources:
+                with st.expander(f"📎 {len(sources)} Source(s) Used", expanded=False):
+                    for s in sources:
+                        fname = s.get("filename", "Unknown").replace(".pdf", "").replace(".txt", "")
+                        pg = s.get("page_number", "?")
+                        score = round(s.get("score", 0) * 100, 1)
+                        preview = s.get("preview", "")
+                        st.markdown(f"""
+                        <div class="source-card">
+                            <div class="source-meta">
+                                📄 {fname} &nbsp;|&nbsp; Page {pg} &nbsp;|&nbsp; Match {score}%
+                            </div>
+                            <div>"{preview}"</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+# ─── Quick Suggestions (shown only when history is empty) ───────
 active_query = None
 
-if not st.session_state.chat_history:
-    st.markdown("<p style='color: #64748b; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; text-align: center;'>Suggested Queries</p>", unsafe_allow_html=True)
+if not get_history():
+    st.markdown("""
+    <p style='text-align:center; color:#94a3b8; font-size:0.8rem;
+              font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
+              margin: 1.5rem 0 0.75rem 0;'>✦ Suggested Questions</p>
+    """, unsafe_allow_html=True)
     cols = st.columns(4)
     examples = [
-        "What is Ayushman Bharat?", 
-        "How to get MUDRA loan?", 
-        "Tell me about Digital India", 
-        "PM Kisan Yojana details"
+        "Summarize this document",
+        "What are the key takeaways?",
+        "Extract the main action items",
+        "Explain the core concepts",
     ]
-    
     for i, ex in enumerate(examples):
-        if cols[i].button(ex, key=f"ex_{i}", use_container_width=True):
+        if cols[i].button(ex, key=f"sug_{i}"):
             active_query = ex
 
-# ----------------- CHAT INPUT -----------------
-user_input = st.chat_input("Ask about any Government Scheme...")
+# ─── Chat Input ──────────────────────────────────────────────────
+user_input = st.chat_input("Ask a question about your documents or government schemes...")
 if user_input:
     active_query = user_input
 
-# ----------------- PROCESS QUERY -----------------
+# ─── Process Query ───────────────────────────────────────────────
 if active_query:
-    # Append user question to UI immediately
-    st.session_state.chat_history.append({"role": "user", "content": active_query})
-    
-    # Render user query right away
+    add_user_message(active_query)
+
     with st.chat_message("user", avatar="👤"):
         st.markdown(active_query)
 
     with st.chat_message("assistant", avatar="🏛️"):
-        with st.spinner("Analyzing knowledge base with Endee Vector Search..."):
-            result = search(active_query)
-            
-        if result:
-            answer_text = result.get('answer', 'No answer found').replace(chr(10), '\n')
-            
-            # Append assistant response to history
-            st.session_state.chat_history.append({
-                "role": "assistant", 
-                "content": answer_text,
-                "source": result.get("source"),
-                "num_results": result.get("num_results"),
-                "results": result.get("results")
-            })
-            
-            # Streamlit rerun to cleanly show the beautiful answer markdown UI loop
-            st.rerun()
+        with st.spinner("🔍 Searching knowledge base and generating answer..."):
+            try:
+                result = run_rag(active_query)
+            except Exception as e:
+                result = {
+                    "answer": f"An error occurred: {e}",
+                    "sources": [],
+                    "source_type": "error",
+                    "num_results": 0,
+                }
 
-st.markdown("<br><br><br>", unsafe_allow_html=True)
-# Footer
+        add_assistant_message(
+            content=result["answer"],
+            source_type=result.get("source_type", "retrieval"),
+            sources=result.get("sources", []),
+            num_results=result.get("num_results", 0),
+        )
+        st.rerun()
+
+# ─── Footer ──────────────────────────────────────────────────────
 st.markdown("""
-<div style="text-align: center; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 0.85rem; font-weight: 500;">
-    Developed for Endee.io • Built with Streamlit & Endee Vector DB
+<div style="text-align:center; padding: 3rem 0 1rem 0; color:#94a3b8; font-size:0.82rem;">
+    🏛️ GovScheme AI · Built with Streamlit + Endee Vector DB + Groq LLM
 </div>
 """, unsafe_allow_html=True)

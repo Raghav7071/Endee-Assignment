@@ -23,9 +23,12 @@ services:
     container_name: govscheme-app
     ports:
       - "8501:8501"
+    volumes:
+      - .:/app
     environment:
-      # use host's .env file to pass the groq key correctly
-      - ENDEE_URL=http://endee:8080
+      # default to local endee if not set in .env
+      - ENDEE_URL=${ENDEE_URL:-http://endee:8080}
+      - PYTHONUNBUFFERED=1
     env_file:
       - .env
     depends_on:
