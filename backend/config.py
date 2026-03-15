@@ -4,19 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Helper to get config from environment or streamlit secrets
 def get_config(key, default=None):
     # 1. Try streamlit secrets (for cloud)
-    # Check if the secrets file exists before accessing st.secrets to avoid warnings
-    secrets_path = os.path.join(os.path.expanduser("~"), ".streamlit", "secrets.toml")
-    local_secrets = os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
-    
-    if os.path.exists(secrets_path) or os.path.exists(local_secrets):
-        try:
-            if key in st.secrets:
-                return st.secrets[key]
-        except:
-            pass
+    try:
+        if key in st.secrets:
+            return st.secrets[key]
+    except Exception:
+        pass
     
     # 2. Try OS environment (for local/docker)
     return os.getenv(key, default)
