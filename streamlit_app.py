@@ -70,6 +70,11 @@ st.markdown("""
         font-size: 0.9rem !important;
         transition: all 0.25s ease;
     }
+    [data-testid="stSidebar"] .stButton > button p,
+    [data-testid="stSidebar"] .stButton > button span,
+    [data-testid="stSidebar"] .stButton > button div {
+        color: #D4C9BE !important;
+    }
     [data-testid="stSidebar"] .stButton > button:hover {
         background: #1a4a7a !important;
         transform: translateY(-1px);
