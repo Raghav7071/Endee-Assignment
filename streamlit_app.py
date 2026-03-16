@@ -206,6 +206,21 @@ st.markdown("""
         border-radius: 8px !important;
         border: 1px solid #D4C9BE !important;
     }
+    /* File uploader — red text */
+    [data-testid="stFileUploader"] * {
+        color: #e63946 !important;
+    }
+    [data-testid="stFileUploader"] small {
+        color: #e63946 !important;
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] * {
+        color: #e63946 !important;
+    }
+    [data-testid="stFileUploaderDropzone"] button {
+        color: #e63946 !important;
+        border-color: #e63946 !important;
+        background: transparent !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
