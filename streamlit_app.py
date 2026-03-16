@@ -211,19 +211,24 @@ st.markdown("""
         border-radius: 8px !important;
         border: 1px solid #D4C9BE !important;
     }
-    /* File uploader — red text */
+    /* File uploader — red background, white text */
+    [data-testid="stFileUploaderDropzone"] {
+        background: #e63946 !important;
+        border-color: #e63946 !important;
+        border-radius: 10px !important;
+    }
     [data-testid="stFileUploader"] * {
-        color: #e63946 !important;
+        color: #ffffff !important;
     }
     [data-testid="stFileUploader"] small {
-        color: #e63946 !important;
+        color: #ffffff !important;
     }
     [data-testid="stFileUploaderDropzoneInstructions"] * {
-        color: #e63946 !important;
+        color: #ffffff !important;
     }
     [data-testid="stFileUploaderDropzone"] button {
-        color: #e63946 !important;
-        border-color: #e63946 !important;
+        color: #ffffff !important;
+        border-color: rgba(255,255,255,0.6) !important;
         background: transparent !important;
     }
 </style>
