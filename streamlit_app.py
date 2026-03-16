@@ -3,7 +3,6 @@ import streamlit as st
 # MUST BE THE FIRST STREAMLIT COMMAND
 st.set_page_config(
     page_title="GovScheme AI | RAG Chatbot",
-    page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -239,7 +238,7 @@ st.markdown("""
 #  SIDEBAR — Document Upload & Knowledge Base Manager
 # ═══════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("## 📚 Knowledge Base")
+    st.markdown("## Knowledge Base")
     st.markdown("Upload documents to make them searchable.")
 
     uploaded_files = st.file_uploader(
@@ -253,7 +252,7 @@ with st.sidebar:
         new_files = [f for f in uploaded_files if not is_document_uploaded(f.name)]
 
         if new_files:
-            if st.button("⚡ Process & Ingest Documents", use_container_width=True):
+            if st.button("Process & Ingest Documents", use_container_width=True):
                 for uploaded_file in new_files:
                     with st.spinner(f"Processing **{uploaded_file.name}**..."):
                         ext = os.path.splitext(uploaded_file.name)[1].lower()
@@ -265,12 +264,12 @@ with st.sidebar:
                             # Step 1: Load
                             pages = load_document(tmp_path, original_filename=uploaded_file.name)
                             if not pages:
-                                st.warning(f"⚠️ Could not extract text from **{uploaded_file.name}**.")
+                                st.warning(f"Could not extract text from **{uploaded_file.name}**.")
                                 continue
 
                             # Step 2: Chunk
                             chunks = chunk_pages(pages, chunk_size=700, chunk_overlap=100)
-                            st.markdown(f"📄 **{uploaded_file.name}** → {len(chunks)} chunks")
+                            st.markdown(f"**{uploaded_file.name}** → {len(chunks)} chunks")
 
                             # Step 3: Embed (with caching)
                             progress_bar = st.progress(0, text="Generating embeddings...")
@@ -292,13 +291,13 @@ with st.sidebar:
                             mark_document_uploaded(uploaded_file.name)
 
                             st.success(
-                                f"✅ **{uploaded_file.name}** ingested!\n\n"
+                                f"**{uploaded_file.name}** ingested!\n\n"
                                 f"• {n_upserted} new chunks → Endee\n"
                                 f"• {cached_count} chunks skipped (cached)"
                             )
 
                         except Exception as e:
-                            st.error(f"❌ Error processing **{uploaded_file.name}**: {e}")
+                            st.error(f"Error processing **{uploaded_file.name}**: {e}")
                         finally:
                             try:
                                 os.unlink(tmp_path)
@@ -312,12 +311,12 @@ with st.sidebar:
     docs = get_uploaded_docs()
     if docs:
         st.markdown("---")
-        st.markdown("**📂 Indexed Documents (this session)**")
+        st.markdown("**Indexed Documents (this session)**")
         for doc in docs:
             st.markdown(f"• `{doc}`")
 
     st.markdown("---")
-    if st.button("🗑️ Clear Chat History", use_container_width=True):
+    if st.button("Clear Chat History", use_container_width=True):
         clear_history()
         st.rerun()
 
@@ -328,7 +327,7 @@ with st.sidebar:
 
 st.markdown("""
 <div class="app-header">
-    <div class="app-title">🏛️ GovScheme AI Chatbot</div>
+    <div class="app-title">GovScheme AI Chatbot</div>
     <div class="app-subtitle">
         Upload any document → Ask questions → Get AI-powered answers with source citations
     </div>
@@ -338,18 +337,17 @@ st.markdown("""
 # ─── Chat History ────────────────────────────────────────────────
 for msg in get_history():
     if msg["role"] == "user":
-        with st.chat_message("user", avatar="👤"):
+        with st.chat_message("user"):
             st.markdown(msg["content"])
     else:
-        with st.chat_message("assistant", avatar="🏛️"):
+        with st.chat_message("assistant"):
             _is_ai = msg.get("source_type") == "llm"
             _badge = "badge-ai" if _is_ai else "badge-retrieval"
-            _icon = "✨" if _is_ai else "📄"
             _label = "AI Synthesized Answer" if _is_ai else "Direct Document Extraction"
 
             st.markdown(f"""
             <div class="answer-card">
-                <div class="{_badge}">{_icon} {_label}</div>
+                <div class="{_badge}">{_label}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -358,7 +356,7 @@ for msg in get_history():
             # Source citations
             sources = msg.get("sources", [])
             if sources:
-                with st.expander(f"📎 {len(sources)} Source(s) Used", expanded=False):
+                with st.expander(f"{len(sources)} Source(s) Used", expanded=False):
                     for s in sources:
                         fname = s.get("filename", "Unknown").replace(".pdf", "").replace(".txt", "")
                         pg = s.get("page_number", "?")
@@ -367,7 +365,7 @@ for msg in get_history():
                         st.markdown(f"""
                         <div class="source-card">
                             <div class="source-meta">
-                                📄 {fname} &nbsp;|&nbsp; Page {pg} &nbsp;|&nbsp; Match {score}%
+                                {fname} &nbsp;|&nbsp; Page {pg} &nbsp;|&nbsp; Match {score}%
                             </div>
                             <div>"{preview}"</div>
                         </div>
@@ -380,7 +378,7 @@ if not get_history():
     st.markdown("""
     <p style='text-align:center; color:#94a3b8; font-size:0.8rem;
               font-weight:600; text-transform:uppercase; letter-spacing:0.05em;
-              margin: 1.5rem 0 0.75rem 0;'>✦ Suggested Questions</p>
+              margin: 1.5rem 0 0.75rem 0;'>Suggested Questions</p>
     """, unsafe_allow_html=True)
     cols = st.columns(4)
     examples = [
@@ -402,11 +400,11 @@ if user_input:
 if active_query:
     add_user_message(active_query)
 
-    with st.chat_message("user", avatar="👤"):
+    with st.chat_message("user"):
         st.markdown(active_query)
 
-    with st.chat_message("assistant", avatar="🏛️"):
-        with st.spinner("🔍 Searching knowledge base and generating answer..."):
+    with st.chat_message("assistant"):
+        with st.spinner("Searching knowledge base and generating answer..."):
             try:
                 result = run_rag(active_query)
             except Exception as e:
@@ -428,6 +426,6 @@ if active_query:
 # ─── Footer ──────────────────────────────────────────────────────
 st.markdown("""
 <div style="text-align:center; padding: 3rem 0 1rem 0; color:#94a3b8; font-size:0.82rem;">
-    🏛️ GovScheme AI · Built with Streamlit + Endee Vector DB + Groq LLM
+    GovScheme AI · Built with Streamlit + Endee Vector DB + Groq LLM
 </div>
 """, unsafe_allow_html=True)

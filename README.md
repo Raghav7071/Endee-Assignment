@@ -1,83 +1,121 @@
-# GovScheme AI Assistant | Endee Internship Project
+# GovScheme AI Chatbot — RAG with Endee Vector Database
 
-A production-style conversational AI application built using the **Endee Vector Database**, Streamlit, and Groq LLMs. This project is submitted as part of the Endee Software Development / Machine Learning Internship evaluation.
+A RAG-based virtual assistant that lets you upload Indian Government Scheme documents (PDF, TXT, CSV, JSON) and ask questions about them. It uses Endee as the vector database for semantic search and Llama 3.1 (via Groq) for generating answers with page-level citations.
 
----
+## Problem
 
-## Mandatory Usage Steps (For Evaluators & Contributors)
-To ensure uniformity and authenticity, please strictly follow these repository usage steps before working with the codebase:
-1. **Star** the official [Endee GitHub Repository](https://github.com/endee-io/endee) 
-2. **Fork** this repository to your personal GitHub account.
-3. Use the forked version as the base for building or testing this project.
+Understanding Indian Government Schemes (Yojanas) can be extremely complex for the average citizen. Documents detailing scheme guidelines are often massive PDFs spanning hundreds of pages. Keyword search fails to understand the intent of a citizen's question. This project uses semantic search and RAG to give precise, cited answers directly from official documents.
 
----
+## Architecture
 
-## 1. Project Overview & Problem Statement
-Understanding Indian Government Schemes (Yojanas) can be extremely complex for the average citizen. Documents detailing scheme guidelines (such as *Pradhan Mantri Anusuchit Jaati Abhyuday Yojna*, *Ayushman Bharat*, etc.) are often massive PDFs spanning hundreds of pages. 
+User (Streamlit UI)
+    |
+    |-- Upload Document ----> Backend Processing
+    |                         |
+    |                         |-- Extract text (PyPDF2, etc.)
+    |                         |-- Chunk text (700 chars, 100 overlap)
+    |                         |-- Generate embeddings (all-MiniLM-L6-v2)
+    |                         |-- Store in Endee Vector DB
+    |
+    |-- Ask Question -------> Query Pipeline
+                              |
+                              |-- Embed query (all-MiniLM-L6-v2)
+                              |-- Search Endee (top 5 similar chunks)
+                              |-- Generate answer (Llama 3.1 via Groq)
+                                  |-- Return answer + citations
 
-**Problem**: Keyword-based searches fail to understand the *intent* of a citizen's question. A citizen asking "How to get a business loan without collateral" will fail to find the *Mudra Yojana* if the exact word "collateral" isn't explicitly mapped.
+## How Endee is Used
 
-**Solution**: The **GovScheme AI Assistant** is a Retrieval Augmented Generation (RAG) system. It ingests massive government PDFs, generates semantic vector embeddings, and uses the **Endee Vector Database** to perform ultra-fast cosine similarity searches. It then passes the highly relevant document chunks to an LLM to synthesize a continuous, beautiful, chat-based response for the user. 
+Endee is the core vector database powering this application's RAG pipeline. Here is what it does:
 
----
+* Stores 384-dimensional embeddings for each document chunk
+* Indexes vectors dynamically with metadata (filename, page number, chunk ID, hash) using a cosine similarity space
+* Searches using cosine similarity to find the most mathematically relevant chunks for a user query in milliseconds
 
-## 2. System Design & Technical Approach
+I chose Endee because it operates natively over HTTP with a very clean, lightweight REST interface, avoiding the need for heavy SDK dependencies while providing high-performance search capabilities.
 
-The system uses a completely containerized architecture (Docker Compose) separating the vector database from the frontend application stream.
+## Project Structure
 
-### Architecture Flow:
-1. **Document Ingestion Layer (`ingest.py`, `chunker.py`)**: 
-   - Reads raw `.txt` files and massive `.pdf` documents in real-time.
-   - Extracts text using `PyPDF2` and intelligently chunks strings into 800-word segments (with 100-word overlaps) to preserve contextual meaning.
-2. **Embedding Layer (`embeddings.py`)**:
-   - Converts the text chunks into dense 384-dimensional vectors using `all-MiniLM-L6-v2`.
-3. **Storage & Retrieval (`query.py`)**:
-   - Vectors are stored and indexed continuously in **Endee**.
-4. **Generation (`llm.py`)**:
-   - Retrieved chunks (Top K=5) are injected into a rigorous System Prompt and sent to Groq's API (`llama-3.1-8b-instant`). The LLM synthesizes the final professional Markdown output.
-5. **Frontend UI (`streamlit_app.py`)**:
-   - A ChatGPT-style conversational loop leveraging Streamlit `session_state` and dynamic Sidebar PDF uploading.
+├── backend/
+|   └── query.py           # Backend query handler for metadata
+├── data/
+|   ├── cache/             # Persistent embedding cache (SHA-256)
+|   └── docs/              # Default scheme documents
+├── modules/
+|   ├── chatbot.py         # Session state manager
+|   ├── document_loader.py # Multi-format text extractor
+|   ├── embedding_generator.py # Embedding and caching logic
+|   ├── rag_pipeline.py    # End-to-end RAG orchestrator
+|   ├── text_chunker.py    # Text splitting with metadata
+|   └── vector_store.py    # Endee abstraction layer
+├── streamlit_app.py       # Streamlit chat and upload UI
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── .env.example
+└── README.md
 
----
+## Tech Stack
 
-## 3. Explanation of How Endee is Used
+| Component | Tech |
+|---|---|
+| Vector DB | Endee |
+| LLM | Llama 3.1 8B-Instant (Groq) |
+| Embeddings | all-MiniLM-L6-v2 (SentenceTransformers) |
+| Core Logic | Python Modules |
+| Frontend | Streamlit |
+| Containerization | Docker Compose |
 
-**Endee** operates as the core vector search engine powering this application's RAG pipeline.
+## Setup
 
-### Integration Details:
-- **Python SDK**: The project connects via the official Endee python package natively over HTTP (`endee:8080`).
-- **Index Creation**: The system boots up and automatically defines an index named `govt_schemes` using the `cosine` space type natively optimized for semantic text comparison.
-- **Dynamic Upserting**: As users upload new PDFs via the Streamlit UI Sidebar, the Python backend intercepts the upload, creates chunk embeddings, and uses `index.upsert()` to ingest the vectors *on the fly* with metadata (text and source filename). 
-- **Similarity Search**: When a user queries the chatbot, `index.query(vector, top_k=5)` pulls the 5 most mathematically similar text chunks in milliseconds.
+### Prerequisites
 
----
+* Docker Desktop (running)
+* Git
+* Groq API key (free)
 
-## 4. Clear Setup and Execution Instructions
+### 1. Clone this project
 
-This project is completely Dockerized for foolproof deployment. You only need Docker Desktop installed.
-
-### Prerequisites:
-- Docker Desktop (Running)
-- Git
-
-### Step-by-Step Execution:
-
-**1. Clone & Setup Environment**
 ```bash
+git clone <your-fork-url>
+cd Endee-Assignment
 cp .env.example .env
+# edit .env and add your GROQ_API_KEY
 ```
-*(Optional but Highly Recommended)*: Add a free Groq API key into the `.env` file to enable the AI Synthesizer fallback. Otherwise, the app defaults to raw extracted text.
 
-**2. Run the Multi-Container Cluster**
+### 2. Run with Docker (recommended)
+
 ```bash
 docker-compose up --build -d
 ```
-*This command starts Endee in the background, rebuilds the Streamlit container, downloads the embedding model, and auto-ingests the `data/docs` folder.*
+This starts both the Endee Vector Database and the Streamlit frontend application.
 
-**3. Access the Chat Application**
-Open your browser to: **[http://localhost:8501](http://localhost:8501)**
+### 2b. Or run manually
 
-**4. Testing the RAG Pipeline**
-- Type: *"Explain the Pradhan Mantri Anusuchit Jaati Abhyuday Yojna in detail"* in the chat input.
-- Watch as Endee retrieves the relevant chunks and the LLM renders a perfect Markdown response.
-- Use the **Sidebar Manager** to upload a brand new Government PDF and ask a question about it immediately!
+If you prefer running without Docker:
+
+Requirements:
+* Endee server running on port 8080 (see Endee documentation for installation)
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run the Streamlit app
+streamlit run streamlit_app.py
+```
+
+## Use it
+
+1. Open http://localhost:8501
+2. Upload a PDF, TXT, CSV, or JSON file in the sidebar
+3. Click "Process & Ingest Documents"
+4. Ask questions about the schemes in the chat
+
+## Limitations
+
+* Scanned PDFs without embedded text are not supported (no OCR)
+* System currently uses a single Endee index (`govt_schemes`) for all documents
+* Chat history resets upon hard browser reload
+* Best performance and formatting with English text
