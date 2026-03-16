@@ -63,7 +63,7 @@ st.markdown("""
     [data-testid="stSidebar"] * { color: #123458 !important; }
     [data-testid="stSidebar"] .stButton > button {
         background: #123458 !important;
-        color: #F1EFEC !important;
+        color: #D4C9BE !important;
         border-radius: 8px !important;
         border: none !important;
         font-weight: 700 !important;
