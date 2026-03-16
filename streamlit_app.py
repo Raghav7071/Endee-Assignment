@@ -37,30 +37,30 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-    /* ── Palette (colorhunt.co/palette/f1efecd4c9be123458030303) ──
-       #F1EFEC  warm cream       → primary text / surfaces
-       #D4C9BE  warm tan/beige   → secondary text / borders
-       #123458  deep navy blue   → accent / CTA buttons
-       #030303  near-black       → app background
-    ──────────────────────────────────────────────────────────────── */
+    /* ── Palette ──────────────────────────────────────
+       #F1EFEC  warm cream     → background
+       #123458  deep navy      → primary text & accent
+       #D4C9BE  warm tan       → borders / secondary text
+       #030303  near-black     → dark details
+    ───────────────────────────────────────────────── */
 
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* App background — near black */
+    /* App background — warm cream */
     html, body, .stApp {
-        background-color: #030303 !important;
+        background-color: #F1EFEC !important;
         font-family: 'Outfit', sans-serif;
-        color: #F1EFEC;
+        color: #123458;
     }
 
-    /* Sidebar */
+    /* Sidebar — slightly deeper cream */
     [data-testid="stSidebar"] {
-        background-color: #0d0d0d !important;
-        border-right: 1px solid #1e1e1e;
+        background-color: #e5dfd8 !important;
+        border-right: 1px solid #D4C9BE;
     }
-    [data-testid="stSidebar"] * { color: #D4C9BE !important; }
+    [data-testid="stSidebar"] * { color: #123458 !important; }
     [data-testid="stSidebar"] .stButton > button {
         background: #123458 !important;
         color: #F1EFEC !important;
@@ -73,7 +73,7 @@ st.markdown("""
     [data-testid="stSidebar"] .stButton > button:hover {
         background: #1a4a7a !important;
         transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(18, 52, 88, 0.5);
+        box-shadow: 0 4px 14px rgba(18, 52, 88, 0.3);
     }
 
     /* Header */
@@ -89,43 +89,43 @@ st.markdown("""
     .app-title {
         font-size: 2.6rem;
         font-weight: 800;
-        color: #F1EFEC;
+        color: #123458;
         line-height: 1.2;
         margin-bottom: 0.4rem;
         letter-spacing: -0.02em;
     }
     .app-subtitle {
         font-size: 1.05rem;
-        color: #D4C9BE;
+        color: #5a7a9a;
         font-weight: 300;
         letter-spacing: 0.01em;
     }
 
     /* Answer card */
     .answer-card {
-        background: rgba(241, 239, 236, 0.04);
+        background: #ffffff;
         border-radius: 14px;
         padding: 1.4rem 1.8rem;
-        border: 1px solid #1e1e1e;
+        border: 1px solid #D4C9BE;
         border-top: 3px solid #123458;
         margin: 0.5rem 0;
-        color: #F1EFEC;
+        color: #123458;
     }
 
     /* Source card */
     .source-card {
-        background: rgba(241, 239, 236, 0.025);
-        border: 1px solid #1e1e1e;
+        background: #faf8f6;
+        border: 1px solid #D4C9BE;
         border-left: 3px solid #123458;
         border-radius: 10px;
         padding: 0.9rem 1.1rem;
         margin-bottom: 0.65rem;
         font-size: 0.88rem;
-        color: #D4C9BE;
+        color: #2c4a6a;
     }
     .source-meta {
         font-size: 0.72rem;
-        color: #7a7570;
+        color: #8a9aaa;
         margin-bottom: 0.4rem;
         font-weight: 600;
         text-transform: uppercase;
@@ -136,10 +136,10 @@ st.markdown("""
     .badge-ai {
         display: inline-flex; align-items: center; gap: 6px;
         padding: 3px 12px; border-radius: 5px;
-        background: rgba(18, 52, 88, 0.25);
-        color: #5b8abf;
+        background: rgba(18, 52, 88, 0.08);
+        color: #123458;
         font-size: 0.72rem; font-weight: 700;
-        border: 1px solid rgba(18, 52, 88, 0.5);
+        border: 1px solid rgba(18, 52, 88, 0.25);
         margin-bottom: 0.9rem;
         letter-spacing: 0.05em;
         text-transform: uppercase;
@@ -147,10 +147,10 @@ st.markdown("""
     .badge-retrieval {
         display: inline-flex; align-items: center; gap: 6px;
         padding: 3px 12px; border-radius: 5px;
-        background: rgba(212, 201, 190, 0.08);
-        color: #D4C9BE;
+        background: rgba(212, 201, 190, 0.3);
+        color: #5a7a9a;
         font-size: 0.72rem; font-weight: 700;
-        border: 1px solid rgba(212, 201, 190, 0.2);
+        border: 1px solid rgba(212, 201, 190, 0.6);
         margin-bottom: 0.9rem;
         letter-spacing: 0.05em;
         text-transform: uppercase;
@@ -158,9 +158,9 @@ st.markdown("""
 
     /* Suggestion buttons */
     div[data-testid="stButton"] button {
-        background: rgba(241, 239, 236, 0.04) !important;
-        color: #D4C9BE !important;
-        border: 1px solid #1e1e1e !important;
+        background: #ffffff !important;
+        color: #123458 !important;
+        border: 1px solid #D4C9BE !important;
         border-radius: 9px !important;
         font-weight: 500 !important;
         font-size: 0.88rem !important;
@@ -169,42 +169,42 @@ st.markdown("""
         padding: 0.7rem !important;
     }
     div[data-testid="stButton"] button:hover {
-        background: rgba(18, 52, 88, 0.2) !important;
+        background: #123458 !important;
         border-color: #123458 !important;
         color: #F1EFEC !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(18, 52, 88, 0.25) !important;
+        box-shadow: 0 4px 12px rgba(18, 52, 88, 0.2) !important;
     }
 
     /* Chat input */
     .stChatInput > div > div > textarea {
         border-radius: 10px !important;
-        border: 1px solid #1e1e1e !important;
-        background: rgba(241, 239, 236, 0.04) !important;
-        color: #F1EFEC !important;
+        border: 1px solid #D4C9BE !important;
+        background: #ffffff !important;
+        color: #123458 !important;
         font-size: 1rem !important;
         padding: 0.9rem 1.1rem !important;
     }
     .stChatInput > div > div > textarea:focus {
         border-color: #123458 !important;
-        box-shadow: 0 0 0 2px rgba(18, 52, 88, 0.35) !important;
+        box-shadow: 0 0 0 2px rgba(18, 52, 88, 0.15) !important;
     }
 
     /* Markdown text */
     .stMarkdown p, .stMarkdown li {
-        color: #D4C9BE !important;
+        color: #2c4a6a !important;
         line-height: 1.65 !important;
     }
     .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-        color: #F1EFEC !important;
+        color: #123458 !important;
     }
 
     /* Expander */
     .streamlit-expanderHeader {
-        background: rgba(241, 239, 236, 0.04) !important;
-        color: #D4C9BE !important;
+        background: #ffffff !important;
+        color: #5a7a9a !important;
         border-radius: 8px !important;
-        border: 1px solid #1e1e1e !important;
+        border: 1px solid #D4C9BE !important;
     }
 </style>
 """, unsafe_allow_html=True)
