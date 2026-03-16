@@ -1,5 +1,7 @@
 # GovScheme AI Chatbot — RAG with Endee Vector Database
 
+**[Watch Demo Video](https://drive.google.com/file/d/1pIksFTEdsZ4-p1-W4FHxM4BeQ7lpA1rD/view?usp=sharing)**
+
 A RAG-based virtual assistant that lets you upload Indian Government Scheme documents (PDF, TXT, CSV, JSON) and ask questions about them. It uses Endee as the vector database for semantic search and Llama 3.1 (via Groq) for generating answers with page-level citations.
 
 ## Problem
