@@ -1,12 +1,10 @@
-# core
+
 streamlit==1.40.0
 sentence-transformers==3.0.1
 requests==2.32.3
 python-dotenv==1.0.1
 PyPDF2==3.0.1
-
-# document loading
 pandas==2.2.3
 
-# endee python sdk
-endee==0.2
+
+endee==0.1.23
