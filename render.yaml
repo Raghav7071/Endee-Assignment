@@ -1,46 +1,43 @@
 services:
-  # ─── Endee Vector Database (Backend) ────────────────────────────────────
-  - type: web
-    name: endee-server
-    runtime: image
-    image:
-      url: docker.io/endeeio/endee-server:latest
-    plan: starter
-    disk:
-      name: endee-data
-      mountPath: /data
-      sizeGB: 1
-    envVars:
-      - key: NDD_NUM_THREADS
-        value: "0"
-      - key: NDD_AUTH_TOKEN
-        value: ""
-      - key: PORT
-        value: "8080"
+  # --- Endee Vector Database (Backend) ------------------------------------
+    - type: web
+        name: endee-server
+            runtime: image
+                image:
+                      url: docker.io/endeeio/endee-server:latest
+                          plan: free
+                              envVars:
+                                    - key: NDD_NUM_THREADS
+                                            value: "0"
+                                                  - key: NDD_AUTH_TOKEN
+                                                          value: ""
+                                                                - key: PORT
+                                                                        value: "8080"
 
-  # ─── GovScheme AI Chatbot (Frontend / Streamlit) ─────────────────────────
-  - type: web
-    name: govscheme-app
-    runtime: docker
-    plan: free
-    dockerfilePath: ./Dockerfile
-    envVars:
-      - key: ENDEE_URL
-        fromService:
-          name: endee-server
-          type: web
-          property: hostport
-      - key: INDEX_NAME
-        value: govt_schemes
-      - key: EMBEDDING_MODEL
-        value: all-MiniLM-L6-v2
-      - key: TOP_K
-        value: "3"
-      - key: GROQ_MODEL
-        value: llama-3.1-8b-instant
-      - key: GROQ_API_KEY
-        sync: false
-      - key: PYTHONUNBUFFERED
-        value: "1"
-      - key: PORT
-        value: "8501"
+                                                                          # --- GovScheme AI Chatbot (Frontend / Streamlit) -------------------------
+                                                                            - type: web
+                                                                                name: govscheme-app
+                                                                                    runtime: docker
+                                                                                        plan: free
+                                                                                            dockerfilePath: ./Dockerfile
+                                                                                                envVars:
+                                                                                                      - key: ENDEE_URL
+                                                                                                              fromService:
+                                                                                                                        name: endee-server
+                                                                                                                                  type: web
+                                                                                                                                            property: hostport
+                                                                                                                                                  - key: INDEX_NAME
+                                                                                                                                                          value: govt_schemes
+                                                                                                                                                                - key: EMBEDDING_MODEL
+                                                                                                                                                                        value: all-MiniLM-L6-v2
+                                                                                                                                                                              - key: TOP_K
+                                                                                                                                                                                      value: "3"
+                                                                                                                                                                                            - key: GROQ_MODEL
+                                                                                                                                                                                                    value: llama-3.1-8b-instant
+                                                                                                                                                                                                          - key: GROQ_API_KEY
+                                                                                                                                                                                                                  sync: false
+                                                                                                                                                                                                                        - key: PYTHONUNBUFFERED
+                                                                                                                                                                                                                                value: "1"
+                                                                                                                                                                                                                                      - key: PORT
+                                                                                                                                                                                                                                              value: "8501"
+                                                                                                                                                                                                                                              
